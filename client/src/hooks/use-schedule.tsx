@@ -62,7 +62,7 @@ export function useSchedule() {
       try {
         const shiftData = {
           employeeId: parseInt(data.employeeId),
-          scheduleId: data.scheduleId ? parseInt(data.scheduleId) : null,
+          scheduleId: data.scheduleId && data.scheduleId !== 'none' ? parseInt(data.scheduleId) : null,
           date: new Date(data.date),
           startTime: data.startTime,
           endTime: data.endTime,

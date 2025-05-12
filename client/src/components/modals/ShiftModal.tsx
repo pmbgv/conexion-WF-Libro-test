@@ -12,6 +12,7 @@ import { useSchedule } from "@/hooks/use-schedule";
 import { useToast } from "@/hooks/use-toast";
 import { ShiftFormData } from "@/hooks/use-schedule";
 import { useQuery } from "@tanstack/react-query";
+import { Schedule } from "@shared/schema";
 
 interface ShiftModalProps {
   isOpen: boolean;
@@ -31,14 +32,14 @@ export default function ShiftModal({
   const { toast } = useToast();
   
   // Fetch available schedules for the selector
-  const { data: schedules = [] } = useQuery({
+  const { data: schedules = [] } = useQuery<Schedule[]>({
     queryKey: ['/api/schedules'],
     refetchOnWindowFocus: false,
   });
 
   const [formData, setFormData] = useState<ShiftFormData>({
     employeeId: "",
-    scheduleId: "",
+    scheduleId: "none",
     date: "",
     startTime: "09:00",
     endTime: "17:00",
@@ -173,8 +174,8 @@ export default function ShiftModal({
                   <SelectValue placeholder="Select Schedule" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {schedules.map(schedule => (
+                  <SelectItem value="none">None</SelectItem>
+                  {schedules.map((schedule: Schedule) => (
                     <SelectItem key={schedule.id} value={schedule.id.toString()}>
                       {format(new Date(schedule.weekStartDate), "MMM d")} - {format(new Date(schedule.weekEndDate), "MMM d, yyyy")} ({schedule.status})
                     </SelectItem>
