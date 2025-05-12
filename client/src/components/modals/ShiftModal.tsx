@@ -36,12 +36,12 @@ export default function ShiftModal({
   });
 
   const [formData, setFormData] = useState<ShiftFormData>({
-    employeeId: "",
+    employeeId: "0", // Placeholder ID, will be assigned in the grid
     scheduleId: "none",
     date: "",
     startTime: "09:00",
     endTime: "17:00",
-    position: "",
+    position: "General",
     notes: "",
     repeatShift: false,
     repeatPattern: "weekly"
