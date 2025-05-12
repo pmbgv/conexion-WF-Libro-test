@@ -130,21 +130,29 @@ export default function ShiftModal({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="employee">Employee</Label>
-              <Select
-                value={formData.employeeId}
-                onValueChange={(value) => handleSelectChange("employeeId", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(employee => (
-                    <SelectItem key={employee.id} value={employee.id.toString()}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {selectedEmployeeId ? (
+                // If employee is pre-selected from grid, show a disabled field with the name
+                <div className="p-2 border rounded-md bg-gray-50">
+                  {employees.find(e => e.id === selectedEmployeeId)?.name || "Selected Employee"}
+                </div>
+              ) : (
+                // Otherwise show the dropdown
+                <Select
+                  value={formData.employeeId}
+                  onValueChange={(value) => handleSelectChange("employeeId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(employee => (
+                      <SelectItem key={employee.id} value={employee.id.toString()}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -160,21 +168,13 @@ export default function ShiftModal({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="position">Position</Label>
-                <Select
+                <Input
+                  id="position"
+                  name="position"
+                  placeholder="Enter position"
                   value={formData.position}
-                  onValueChange={(value) => handleSelectChange("position", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Position" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Front Desk">Front Desk</SelectItem>
-                    <SelectItem value="Inventory">Inventory</SelectItem>
-                    <SelectItem value="Reception">Reception</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                    <SelectItem value="Weekend Support">Weekend Support</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={handleInputChange}
+                />
               </div>
             </div>
             

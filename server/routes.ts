@@ -125,10 +125,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/shifts", async (req: Request, res: Response) => {
     try {
-      const shiftData = insertShiftSchema.parse(req.body);
+      console.log("Received shift data:", req.body);
+      
+      // Ensure date is properly converted to Date object
+      const data = {
+        ...req.body,
+        date: new Date(req.body.date)
+      };
+      
+      const shiftData = insertShiftSchema.parse(data);
       const shift = await storage.createShift(shiftData);
       res.status(201).json(shift);
     } catch (error: any) {
+      console.error("Error creating shift:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid shift data", errors: error.errors });
       }

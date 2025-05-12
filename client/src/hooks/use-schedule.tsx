@@ -58,18 +58,24 @@ export function useSchedule() {
     isPending: isAdding
   } = useMutation({
     mutationFn: async (data: ShiftFormData) => {
-      const shiftData = {
-        employeeId: parseInt(data.employeeId),
-        date: new Date(data.date),
-        startTime: data.startTime,
-        endTime: data.endTime,
-        position: data.position,
-        notes: data.notes || "",
-        status: "draft"
-      };
-      
-      const response = await apiRequest('POST', '/api/shifts', shiftData);
-      return await response.json();
+      try {
+        const shiftData = {
+          employeeId: parseInt(data.employeeId),
+          date: new Date(data.date),
+          startTime: data.startTime,
+          endTime: data.endTime,
+          position: data.position,
+          notes: data.notes || "",
+          status: "draft"
+        };
+        
+        console.log("Sending shift data:", shiftData);
+        const response = await apiRequest('POST', '/api/shifts', shiftData);
+        return await response.json();
+      } catch (error) {
+        console.error("Error creating shift:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate shifts query to refetch updated data
