@@ -9,9 +9,10 @@ interface EmployeeRowProps {
   days: DayInfo[];
   shifts: ShiftWithEmployee[];
   hoveredCell: string | null;
+  selectedCell: string | null;
   onCellHover: (employeeId: number, dayIndex: number) => void;
   onCellLeave: () => void;
-  onCellClick: (employeeId: number, day: Date) => void;
+  onCellClick: (employeeId: number, day: Date, dayIndex: number) => void;
 }
 
 export default function EmployeeRow({
@@ -19,6 +20,7 @@ export default function EmployeeRow({
   days,
   shifts,
   hoveredCell,
+  selectedCell,
   onCellHover,
   onCellLeave,
   onCellClick
@@ -55,10 +57,12 @@ export default function EmployeeRow({
         return (
           <div 
             key={index}
-            className={`border-r border-gray-200 last:border-r-0 p-2 relative ${isHovered ? 'bg-gray-100' : ''}`}
+            className={`border-r border-gray-200 last:border-r-0 p-2 relative 
+              ${isHovered ? 'bg-gray-100' : ''} 
+              ${selectedCell === cellId ? 'bg-blue-100 ring-2 ring-primary' : ''}`}
             onMouseEnter={() => onCellHover(employee.id, index)}
             onMouseLeave={onCellLeave}
-            onClick={() => onCellClick(employee.id, day.fullDate)}
+            onClick={() => onCellClick(employee.id, day.fullDate, index)}
           >
             {dayShifts.length > 0 ? (
               // Display shift information
@@ -81,7 +85,7 @@ export default function EmployeeRow({
                     className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-primary hover:text-white"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onCellClick(employee.id, day.fullDate);
+                      onCellClick(employee.id, day.fullDate, index);
                     }}
                   >
                     <Plus className="h-5 w-5" />
