@@ -62,7 +62,7 @@ export default function ScheduleManager() {
         onPrevWeek={() => navigateWeek('prev')}
         onNextWeek={() => navigateWeek('next')}
         onCurrentWeek={() => navigateWeek('current')}
-        scheduleStatus={schedule?.status || "draft"}
+        scheduleStatus={schedule?.status === "published" ? "published" : "draft"}
       />
       
       <ScheduleCalendar 
