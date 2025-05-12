@@ -5,6 +5,12 @@ import {
   schedules, type Schedule, type InsertSchedule,
   type ShiftWithEmployee
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+import { db } from './db';
+import { DatabaseStorage } from './database-storage';
+
+const MemoryStore = createMemoryStore(session);
 
 // Storage interface
 export interface IStorage {
@@ -38,6 +44,9 @@ export interface IStorage {
   // Bulk operations
   publishSchedule(scheduleId: number): Promise<boolean>;
   publishShifts(shiftIds: number[]): Promise<boolean>;
+  
+  // Session store for auth
+  sessionStore: session.Store;
 }
 
 // In-memory storage implementation
@@ -51,6 +60,8 @@ export class MemStorage implements IStorage {
   private currentEmployeeId: number;
   private currentShiftId: number;
   private currentScheduleId: number;
+  
+  public sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -62,6 +73,11 @@ export class MemStorage implements IStorage {
     this.currentEmployeeId = 1;
     this.currentShiftId = 1;
     this.currentScheduleId = 1;
+    
+    // Create memory store for sessions
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
     
     // Initialize with seed data
     this.seedData();
@@ -286,4 +302,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Create the appropriate storage implementation based on database availability
+export const storage: IStorage = db ? new DatabaseStorage(db) : new MemStorage();
