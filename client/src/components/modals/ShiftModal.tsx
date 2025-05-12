@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { useEmployee } from "@/hooks/use-employee";
+
 import { useSchedule } from "@/hooks/use-schedule";
 import { useToast } from "@/hooks/use-toast";
 import { ShiftFormData } from "@/hooks/use-schedule";
@@ -18,16 +18,14 @@ interface ShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date | null;
-  selectedEmployeeId: number | null;
 }
 
 export default function ShiftModal({ 
   isOpen, 
   onClose,
-  selectedDate,
-  selectedEmployeeId
+  selectedDate
 }: ShiftModalProps) {
-  const { employees } = useEmployee();
+
   const { addShift, isAdding } = useSchedule();
   const { toast } = useToast();
   
@@ -65,16 +63,8 @@ export default function ShiftModal({
           date: format(new Date(), "yyyy-MM-dd")
         }));
       }
-      
-      // Update employee if selected
-      if (selectedEmployeeId) {
-        setFormData(prevData => ({
-          ...prevData,
-          employeeId: selectedEmployeeId.toString()
-        }));
-      }
     }
-  }, [selectedDate, selectedEmployeeId, isOpen]);
+  }, [selectedDate, isOpen]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -104,7 +94,7 @@ export default function ShiftModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.employeeId || !formData.date || !formData.startTime || !formData.endTime || !formData.position) {
+    if (!formData.date || !formData.startTime || !formData.endTime || !formData.position) {
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields.",
@@ -114,11 +104,17 @@ export default function ShiftModal({
     }
     
     try {
-      await addShift(formData);
+      // Create a shift without associating it with a specific employee
+      const shiftData = {
+        ...formData,
+        employeeId: "0" // Temporary placeholder, will be assigned in the grid
+      };
+      
+      await addShift(shiftData);
       onClose();
       toast({
-        title: "Shift added successfully",
-        description: "The shift has been added to the schedule.",
+        title: "Shift template added successfully",
+        description: "The shift has been created and can now be assigned to employees on the schedule.",
       });
     } catch (error) {
       toast({
@@ -137,32 +133,7 @@ export default function ShiftModal({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="employee">Employee</Label>
-              {selectedEmployeeId ? (
-                // If employee is pre-selected from grid, show a disabled field with the name
-                <div className="p-2 border rounded-md bg-gray-50">
-                  {employees.find(e => e.id === selectedEmployeeId)?.name || "Selected Employee"}
-                </div>
-              ) : (
-                // Otherwise show the dropdown
-                <Select
-                  value={formData.employeeId}
-                  onValueChange={(value) => handleSelectChange("employeeId", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map(employee => (
-                      <SelectItem key={employee.id} value={employee.id.toString()}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+
             
             <div className="grid gap-2">
               <Label htmlFor="scheduleId">Schedule</Label>

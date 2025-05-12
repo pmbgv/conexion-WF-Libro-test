@@ -81,7 +81,6 @@ export default function ScheduleManager() {
         isOpen={isShiftModalOpen} 
         onClose={() => setIsShiftModalOpen(false)}
         selectedDate={selectedDate}
-        selectedEmployeeId={selectedEmployeeId}
       />
       
       <PublishModal 
