@@ -78,6 +78,7 @@ export default function ScheduleManager() {
         currentWeek={currentWeek} 
         shifts={shifts}
         onAddShift={handleAddShift}
+        selectedCellId={selectedCellId}
       />
       
       <ScheduleStatsPanel 
@@ -87,7 +88,10 @@ export default function ScheduleManager() {
       
       <ShiftModal 
         isOpen={isShiftModalOpen} 
-        onClose={() => setIsShiftModalOpen(false)}
+        onClose={() => {
+          setIsShiftModalOpen(false);
+          setSelectedCellId(null); // Clear the selected cell when closing modal
+        }}
         selectedDate={selectedDate}
       />
       

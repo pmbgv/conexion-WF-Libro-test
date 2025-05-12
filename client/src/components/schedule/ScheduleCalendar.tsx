@@ -13,17 +13,19 @@ interface ScheduleCalendarProps {
   shifts: ShiftWithEmployee[];
   isLoading: boolean;
   onAddShift: (date: Date, employeeId?: number, dayIndex?: number) => void;
+  selectedCellId: string | null;
 }
 
 export default function ScheduleCalendar({ 
   currentWeek, 
   shifts, 
   isLoading,
-  onAddShift 
+  onAddShift,
+  selectedCellId
 }: ScheduleCalendarProps) {
   const { employees, isLoading: isLoadingEmployees } = useEmployee();
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
-  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  // We'll use the selectedCellId from props instead of local state
   
   const daysOfWeek = useMemo(() => {
     return getDaysOfWeek(currentWeek.startDate);
@@ -55,12 +57,9 @@ export default function ScheduleCalendar({
   
   const handleCellClick = (employeeId: number, day: Date, dayIndex: number) => {
     const cellId = `${employeeId}-${dayIndex}`;
-    setSelectedCell(cellId === selectedCell ? null : cellId);
     
-    // If we already have a selection, don't open the modal again
-    if (cellId !== selectedCell) {
-      onAddShift(day, employeeId, dayIndex);
-    }
+    // Call onAddShift to handle the cell click
+    onAddShift(day, employeeId, dayIndex);
   };
   
   if (isLoading || isLoadingEmployees) {
@@ -119,7 +118,7 @@ export default function ScheduleCalendar({
             days={daysOfWeek}
             shifts={shiftsByEmployee[employee.id] || []}
             hoveredCell={hoveredCell}
-            selectedCell={selectedCell}
+            selectedCell={selectedCellId}
             onCellHover={handleCellHover}
             onCellLeave={handleCellLeave}
             onCellClick={handleCellClick}
