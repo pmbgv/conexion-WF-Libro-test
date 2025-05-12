@@ -163,6 +163,26 @@ export default function ShiftModal({
               )}
             </div>
             
+            <div className="grid gap-2">
+              <Label htmlFor="scheduleId">Schedule</Label>
+              <Select
+                value={formData.scheduleId}
+                onValueChange={(value) => handleSelectChange("scheduleId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Schedule" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {schedules.map(schedule => (
+                    <SelectItem key={schedule.id} value={schedule.id.toString()}>
+                      {format(new Date(schedule.weekStartDate), "MMM d")} - {format(new Date(schedule.weekEndDate), "MMM d, yyyy")} ({schedule.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="date">Date</Label>
