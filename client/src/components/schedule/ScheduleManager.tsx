@@ -22,8 +22,15 @@ export default function ScheduleManager() {
     navigateWeek
   } = useSchedule();
 
-  const handleAddShift = (date?: Date) => {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  
+  const handleAddShift = (date?: Date, employeeId?: number) => {
     setSelectedDate(date || null);
+    if (employeeId) {
+      setSelectedEmployeeId(employeeId);
+    } else {
+      setSelectedEmployeeId(null);
+    }
     setIsShiftModalOpen(true);
   };
 
@@ -36,7 +43,6 @@ export default function ScheduleManager() {
       toast({
         title: "Schedule published successfully!",
         description: "All employees will now be able to see their shifts.",
-        variant: "success",
       });
     } catch (error) {
       toast({
@@ -75,6 +81,7 @@ export default function ScheduleManager() {
         isOpen={isShiftModalOpen} 
         onClose={() => setIsShiftModalOpen(false)}
         selectedDate={selectedDate}
+        selectedEmployeeId={selectedEmployeeId}
       />
       
       <PublishModal 

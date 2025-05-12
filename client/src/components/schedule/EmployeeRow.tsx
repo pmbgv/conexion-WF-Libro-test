@@ -38,12 +38,12 @@ export default function EmployeeRow({
   
   return (
     <div className="grid grid-cols-8 hover:bg-gray-50">
-      <div className="p-4 font-medium border-r border-gray-200 flex items-center">
+      <div className="p-2 font-medium border-r border-gray-200 flex items-center">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary mr-3">
+          <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary mr-2 text-xs">
             <span>{employee.initials}</span>
           </div>
-          <span>{employee.name}</span>
+          <span className="text-sm">{employee.name}</span>
         </div>
       </div>
       

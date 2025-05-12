@@ -12,7 +12,7 @@ interface ScheduleCalendarProps {
   };
   shifts: ShiftWithEmployee[];
   isLoading: boolean;
-  onAddShift: (date: Date) => void;
+  onAddShift: (date: Date, employeeId?: number) => void;
 }
 
 export default function ScheduleCalendar({ 
@@ -53,7 +53,7 @@ export default function ScheduleCalendar({
   };
   
   const handleCellClick = (employeeId: number, day: Date) => {
-    onAddShift(day);
+    onAddShift(day, employeeId);
   };
   
   if (isLoading || isLoadingEmployees) {
@@ -92,13 +92,13 @@ export default function ScheduleCalendar({
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mb-8">
       {/* Calendar Header */}
       <div className="grid grid-cols-8 border-b border-gray-200">
-        <div className="p-4 font-medium text-gray-700 border-r border-gray-200 bg-gray-50">
+        <div className="p-2 font-medium text-gray-700 border-r border-gray-200 bg-gray-50">
           Employees
         </div>
         {daysOfWeek.map((day, i) => (
-          <div key={i} className="p-4 font-medium text-gray-700 text-center border-r border-gray-200 last:border-r-0">
-            <div className="text-sm text-gray-500">{day.name}</div>
-            <div>{day.date}</div>
+          <div key={i} className="p-2 font-medium text-gray-700 text-center border-r border-gray-200 last:border-r-0">
+            <div className="text-xs text-gray-500">{day.name}</div>
+            <div className="text-sm">{day.date}</div>
           </div>
         ))}
       </div>

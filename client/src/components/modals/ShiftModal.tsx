@@ -16,12 +16,14 @@ interface ShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date | null;
+  selectedEmployeeId: number | null;
 }
 
 export default function ShiftModal({ 
   isOpen, 
   onClose,
-  selectedDate 
+  selectedDate,
+  selectedEmployeeId
 }: ShiftModalProps) {
   const { employees } = useEmployee();
   const { addShift, isAdding } = useSchedule();
@@ -41,18 +43,29 @@ export default function ShiftModal({
   const [repeatOptions, setRepeatOptions] = useState(false);
 
   useEffect(() => {
-    if (selectedDate) {
-      setFormData(prevData => ({
-        ...prevData,
-        date: format(selectedDate, "yyyy-MM-dd")
-      }));
-    } else {
-      setFormData(prevData => ({
-        ...prevData,
-        date: format(new Date(), "yyyy-MM-dd")
-      }));
+    if (isOpen) {
+      // Update date
+      if (selectedDate) {
+        setFormData(prevData => ({
+          ...prevData,
+          date: format(selectedDate, "yyyy-MM-dd")
+        }));
+      } else {
+        setFormData(prevData => ({
+          ...prevData,
+          date: format(new Date(), "yyyy-MM-dd")
+        }));
+      }
+      
+      // Update employee if selected
+      if (selectedEmployeeId) {
+        setFormData(prevData => ({
+          ...prevData,
+          employeeId: selectedEmployeeId.toString()
+        }));
+      }
     }
-  }, [selectedDate, isOpen]);
+  }, [selectedDate, selectedEmployeeId, isOpen]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
