@@ -12,7 +12,7 @@ interface ScheduleCalendarProps {
   };
   shifts: ShiftWithEmployee[];
   isLoading: boolean;
-  onAddShift: (date: Date, employeeId?: number) => void;
+  onAddShift: (date: Date, employeeId?: number, dayIndex?: number) => void;
 }
 
 export default function ScheduleCalendar({ 
@@ -59,7 +59,7 @@ export default function ScheduleCalendar({
     
     // If we already have a selection, don't open the modal again
     if (cellId !== selectedCell) {
-      onAddShift(day, employeeId);
+      onAddShift(day, employeeId, dayIndex);
     }
   };
   

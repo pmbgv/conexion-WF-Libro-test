@@ -23,14 +23,22 @@ export default function ScheduleManager() {
   } = useSchedule();
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   
-  const handleAddShift = (date?: Date, employeeId?: number) => {
+  const handleAddShift = (date?: Date, employeeId?: number, dayIndex?: number) => {
     setSelectedDate(date || null);
+    
     if (employeeId) {
       setSelectedEmployeeId(employeeId);
+      
+      // If we have both employee ID and day index, we can set the selected cell ID
+      if (dayIndex !== undefined) {
+        setSelectedCellId(`${employeeId}-${dayIndex}`);
+      }
     } else {
       setSelectedEmployeeId(null);
     }
+    
     setIsShiftModalOpen(true);
   };
 

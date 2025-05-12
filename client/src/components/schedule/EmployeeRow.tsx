@@ -78,20 +78,30 @@ export default function EmployeeRow({
                 </div>
               ))
             ) : (
-              // Empty cell with add button on hover
-              isHovered && (
-                <div className="h-full w-full flex items-center justify-center">
-                  <button 
-                    className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-primary hover:text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCellClick(employee.id, day.fullDate, index);
-                    }}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                </div>
-              )
+              // Empty cell with add button on hover or selected marker
+              <>
+                {selectedCell === cellId && (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white font-bold pulse-animation">
+                      +
+                    </div>
+                  </div>
+                )}
+                
+                {isHovered && selectedCell !== cellId && (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <button 
+                      className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-primary hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCellClick(employee.id, day.fullDate, index);
+                      }}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
