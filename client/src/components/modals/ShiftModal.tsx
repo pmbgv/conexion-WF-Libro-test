@@ -11,6 +11,7 @@ import { useEmployee } from "@/hooks/use-employee";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useToast } from "@/hooks/use-toast";
 import { ShiftFormData } from "@/hooks/use-schedule";
+import { useQuery } from "@tanstack/react-query";
 
 interface ShiftModalProps {
   isOpen: boolean;
@@ -28,9 +29,16 @@ export default function ShiftModal({
   const { employees } = useEmployee();
   const { addShift, isAdding } = useSchedule();
   const { toast } = useToast();
+  
+  // Fetch available schedules for the selector
+  const { data: schedules = [] } = useQuery({
+    queryKey: ['/api/schedules'],
+    refetchOnWindowFocus: false,
+  });
 
   const [formData, setFormData] = useState<ShiftFormData>({
     employeeId: "",
+    scheduleId: "",
     date: "",
     startTime: "09:00",
     endTime: "17:00",

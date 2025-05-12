@@ -6,6 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export interface ShiftFormData {
   employeeId: string;
+  scheduleId: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -61,6 +62,7 @@ export function useSchedule() {
       try {
         const shiftData = {
           employeeId: parseInt(data.employeeId),
+          scheduleId: data.scheduleId ? parseInt(data.scheduleId) : null,
           date: new Date(data.date),
           startTime: data.startTime,
           endTime: data.endTime,

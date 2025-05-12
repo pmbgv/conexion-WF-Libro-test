@@ -36,6 +36,7 @@ export const insertEmployeeSchema = createInsertSchema(employees).pick({
 export const shifts = pgTable("shifts", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
+  scheduleId: integer("schedule_id"), // Optional, will be linked to a schedule when available
   date: timestamp("date").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
@@ -46,6 +47,7 @@ export const shifts = pgTable("shifts", {
 
 export const insertShiftSchema = createInsertSchema(shifts).pick({
   employeeId: true,
+  scheduleId: true,
   date: true,
   startTime: true,
   endTime: true,
