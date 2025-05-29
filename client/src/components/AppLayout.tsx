@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Link } from "wouter";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,7 +12,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="header-content">
           <img src="https://www.geovictoria.com/hubfs/social-suggested-images/info.geovictoria.comhubfscropped-Logo-WEB-5-1.png" width="112px"/>
           <div className="divider"></div>
-          <div className="color-lightblue2">Control de Asistencia</div>
+          <Link href="/notificaciones">
+            <div className="color-lightblue2" style={{ cursor: 'pointer' }}>Control de Asistencia</div>
+          </Link>
           <div className="divider"></div>
           <input className="gv-input" type="text" placeholder="Buscar..."/>
         </div>
