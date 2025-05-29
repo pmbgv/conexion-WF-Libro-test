@@ -6,32 +6,25 @@ import * as schema from "@shared/schema";
 // When running in NeonDB environment, we need to use websockets
 neonConfig.webSocketConstructor = ws;
 
-// Check for DATABASE_URL environment variable
 if (!process.env.DATABASE_URL) {
-  console.warn(
-    "DATABASE_URL is not set. Using in-memory storage instead. To use a database, create a Postgres database in your Replit settings."
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
-// Create a database pool if we have a DATABASE_URL
-export const pool = process.env.DATABASE_URL 
-  ? new Pool({ connectionString: process.env.DATABASE_URL }) 
-  : null;
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
 
-// Create database client if pool exists
-export const db = pool 
-  ? drizzle({ client: pool, schema }) 
-  : null;
-
-// Database connection check function
 export async function checkDatabase(): Promise<boolean> {
-  if (!pool) return false;
-  
   try {
-    const result = await pool.query('SELECT NOW()');
-    return result.rowCount > 0;
+    const result = await pool.query('SELECT 1');
+    if (result.rowCount !== null && result.rowCount >= 0) {
+      console.log("✅ Database connection successful");
+      return true;
+    }
+    return false;
   } catch (error) {
-    console.error('Database connection error:', error);
+    console.error("❌ Database connection failed:", error);
     return false;
   }
 }

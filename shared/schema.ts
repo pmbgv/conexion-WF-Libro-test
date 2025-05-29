@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -87,3 +88,15 @@ export type PermissionWithEmployee = Permission & {
 export type CalendarPeriodWithPermissions = CalendarPeriod & {
   permissions: PermissionWithEmployee[];
 };
+
+// Database relations
+export const employeesRelations = relations(employees, ({ many }) => ({
+  permissions: many(permissions),
+}));
+
+export const permissionsRelations = relations(permissions, ({ one }) => ({
+  employee: one(employees, {
+    fields: [permissions.employeeId],
+    references: [employees.id],
+  }),
+}));

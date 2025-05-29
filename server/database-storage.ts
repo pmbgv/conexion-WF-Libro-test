@@ -1,286 +1,282 @@
-import { IStorage } from './storage';
 import { 
-  users, type User, type InsertUser,
-  employees, type Employee, type InsertEmployee,
-  permissions, type Permission, type InsertPermission,
-  calendarPeriods, type CalendarPeriod, type InsertCalendarPeriod,
-  type PermissionWithEmployee
+  User, InsertUser, 
+  Employee, InsertEmployee,
+  Permission, InsertPermission, PermissionWithEmployee,
+  CalendarPeriod, InsertCalendarPeriod,
+  users, employees, permissions, calendarPeriods
 } from "@shared/schema";
-import { db } from './db';
-import { eq, and, between } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { MemStorage } from './storage';
+import { db } from "./db";
+import { eq, and, gte, lte } from "drizzle-orm";
+import { IStorage } from "./storage";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
+
+const PgSession = ConnectPgSimple(session);
 
 /**
  * PostgreSQL database storage implementation
  */
 export class DatabaseStorage implements IStorage {
-  private db: PostgresJsDatabase<any>;
-  private fallbackStorage: MemStorage;
-  private isConnected: boolean = false;
+  public sessionStore: session.Store;
 
-  constructor(database: PostgresJsDatabase<any> | null) {
-    if (!database) {
-      console.warn("Database client not available. Using in-memory storage instead.");
-      this.fallbackStorage = new MemStorage();
-      this.isConnected = false;
-    } else {
-      this.db = database;
-      this.isConnected = true;
-    }
+  constructor() {
+    this.sessionStore = new PgSession({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    });
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.getUser(id);
-    
-    const [user] = await this.db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.getUserByUsername(username);
-    
-    const [user] = await this.db.select().from(users).where(eq(users.username, username));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    if (!this.isConnected) return this.fallbackStorage.createUser(user);
-    
-    const [createdUser] = await this.db.insert(users).values(user).returning();
-    return createdUser;
+    const [newUser] = await db
+      .insert(users)
+      .values(user)
+      .returning();
+    return newUser;
   }
 
   // Employee methods
   async getEmployees(): Promise<Employee[]> {
-    if (!this.isConnected) return this.fallbackStorage.getEmployees();
-    
-    return this.db.select().from(employees);
+    try {
+      return await db.select().from(employees);
+    } catch (error) {
+      console.error("Error getting employees:", error);
+      return [];
+    }
   }
 
   async getEmployee(id: number): Promise<Employee | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.getEmployee(id);
-    
-    const [employee] = await this.db.select().from(employees).where(eq(employees.id, id));
-    return employee;
+    try {
+      const [employee] = await db.select().from(employees).where(eq(employees.id, id));
+      return employee || undefined;
+    } catch (error) {
+      console.error("Error getting employee:", error);
+      return undefined;
+    }
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    if (!this.isConnected) return this.fallbackStorage.createEmployee(employee);
-    
-    const [createdEmployee] = await this.db.insert(employees).values(employee).returning();
-    return createdEmployee;
+    const [newEmployee] = await db
+      .insert(employees)
+      .values(employee)
+      .returning();
+    return newEmployee;
   }
 
   async updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.updateEmployee(id, employee);
-    
-    const [updatedEmployee] = await this.db
-      .update(employees)
-      .set(employee)
-      .where(eq(employees.id, id))
-      .returning();
-    
-    return updatedEmployee;
+    try {
+      const [updatedEmployee] = await db
+        .update(employees)
+        .set(employee)
+        .where(eq(employees.id, id))
+        .returning();
+      return updatedEmployee || undefined;
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      return undefined;
+    }
   }
 
   async deleteEmployee(id: number): Promise<boolean> {
-    if (!this.isConnected) return this.fallbackStorage.deleteEmployee(id);
-    
-    const result = await this.db
-      .delete(employees)
-      .where(eq(employees.id, id))
-      .returning({ id: employees.id });
-    
-    return result.length > 0;
+    try {
+      const result = await db.delete(employees).where(eq(employees.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      return false;
+    }
   }
 
   // Permission methods
   async getPermissions(): Promise<Permission[]> {
-    if (!this.isConnected) return this.fallbackStorage.getPermissions();
-    
-    return this.db.select().from(permissions);
+    try {
+      return await db.select().from(permissions);
+    } catch (error) {
+      console.error("Error getting permissions:", error);
+      return [];
+    }
   }
 
   async getPermissionsByEmployee(employeeId: number): Promise<Permission[]> {
-    if (!this.isConnected) return this.fallbackStorage.getPermissionsByEmployee(employeeId);
-    
-    return this.db
-      .select()
-      .from(permissions)
-      .where(eq(permissions.employeeId, employeeId));
+    try {
+      return await db.select().from(permissions).where(eq(permissions.employeeId, employeeId));
+    } catch (error) {
+      console.error("Error getting permissions by employee:", error);
+      return [];
+    }
   }
 
   async getPermissionsByMonth(startDate: Date, endDate: Date): Promise<PermissionWithEmployee[]> {
-    if (!this.isConnected) return this.fallbackStorage.getPermissionsByMonth(startDate, endDate);
-    
-    // First get all permissions in the date range
-    const permissionsResult = await this.db
-      .select()
-      .from(permissions)
-      .where(
-        and(
-          between(permissions.date, startDate, endDate)
-        )
-      );
-    
-    // Now fetch all the employees for these permissions
-    const employeeIds = [...new Set(permissionsResult.map(permission => permission.employeeId))];
-    const employeesResult = await this.db
-      .select()
-      .from(employees)
-      .where(
-        employeeIds.length > 0
-          ? eq(employees.id, employeeIds[0])
-          : undefined
-      );
-    
-    // Create a map for quick lookup
-    const employeeMap = new Map<number, Employee>();
-    employeesResult.forEach(emp => employeeMap.set(emp.id, emp));
-    
-    // Join the data
-    return permissionsResult.map(permission => {
-      const employee = employeeMap.get(permission.employeeId);
-      if (!employee) {
-        throw new Error(`Employee with ID ${permission.employeeId} not found`);
-      }
-      return { ...permission, employee };
-    });
+    try {
+      const result = await db
+        .select({
+          id: permissions.id,
+          employeeId: permissions.employeeId,
+          date: permissions.date,
+          type: permissions.type,
+          reason: permissions.reason,
+          status: permissions.status,
+          employee: employees
+        })
+        .from(permissions)
+        .innerJoin(employees, eq(permissions.employeeId, employees.id))
+        .where(
+          and(
+            gte(permissions.date, startDate),
+            lte(permissions.date, endDate)
+          )
+        );
+
+      return result.map(row => ({
+        id: row.id,
+        employeeId: row.employeeId,
+        date: row.date,
+        type: row.type,
+        reason: row.reason,
+        status: row.status,
+        employee: row.employee
+      }));
+    } catch (error) {
+      console.error("Error getting permissions by month:", error);
+      return [];
+    }
   }
 
-  async getShift(id: number): Promise<Shift | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.getShift(id);
-    
-    const [shift] = await this.db.select().from(shifts).where(eq(shifts.id, id));
-    return shift;
+  async getPermission(id: number): Promise<Permission | undefined> {
+    try {
+      const [permission] = await db.select().from(permissions).where(eq(permissions.id, id));
+      return permission || undefined;
+    } catch (error) {
+      console.error("Error getting permission:", error);
+      return undefined;
+    }
   }
 
-  async createShift(shift: InsertShift): Promise<Shift> {
-    if (!this.isConnected) return this.fallbackStorage.createShift(shift);
-    
-    const [createdShift] = await this.db.insert(shifts).values(shift).returning();
-    return createdShift;
-  }
-
-  async updateShift(id: number, shift: Partial<InsertShift>): Promise<Shift | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.updateShift(id, shift);
-    
-    const [updatedShift] = await this.db
-      .update(shifts)
-      .set(shift)
-      .where(eq(shifts.id, id))
+  async createPermission(permission: InsertPermission): Promise<Permission> {
+    const [newPermission] = await db
+      .insert(permissions)
+      .values(permission)
       .returning();
-    
-    return updatedShift;
+    return newPermission;
   }
 
-  async deleteShift(id: number): Promise<boolean> {
-    if (!this.isConnected) return this.fallbackStorage.deleteShift(id);
-    
-    const result = await this.db
-      .delete(shifts)
-      .where(eq(shifts.id, id))
-      .returning({ id: shifts.id });
-    
-    return result.length > 0;
+  async updatePermission(id: number, permission: Partial<InsertPermission>): Promise<Permission | undefined> {
+    try {
+      const [updatedPermission] = await db
+        .update(permissions)
+        .set(permission)
+        .where(eq(permissions.id, id))
+        .returning();
+      return updatedPermission || undefined;
+    } catch (error) {
+      console.error("Error updating permission:", error);
+      return undefined;
+    }
   }
 
-  // Schedule methods
-  async getSchedules(): Promise<Schedule[]> {
-    if (!this.isConnected) return this.fallbackStorage.getSchedules();
-    
-    return this.db.select().from(schedules);
+  async deletePermission(id: number): Promise<boolean> {
+    try {
+      await db.delete(permissions).where(eq(permissions.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting permission:", error);
+      return false;
+    }
   }
 
-  async getScheduleByWeek(startDate: Date): Promise<Schedule | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.getScheduleByWeek(startDate);
-    
-    // Convert to start of day to match database format
-    const dateStart = new Date(startDate);
-    dateStart.setHours(0, 0, 0, 0);
-    
-    const [schedule] = await this.db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.weekStartDate, dateStart));
-    
-    return schedule;
+  // Calendar period methods
+  async getCalendarPeriods(): Promise<CalendarPeriod[]> {
+    try {
+      return await db.select().from(calendarPeriods);
+    } catch (error) {
+      console.error("Error getting calendar periods:", error);
+      return [];
+    }
   }
 
-  async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
-    if (!this.isConnected) return this.fallbackStorage.createSchedule(schedule);
-    
-    const [createdSchedule] = await this.db.insert(schedules).values(schedule).returning();
-    return createdSchedule;
+  async getCalendarPeriodByMonth(startDate: Date): Promise<CalendarPeriod | undefined> {
+    try {
+      const [period] = await db
+        .select()
+        .from(calendarPeriods)
+        .where(eq(calendarPeriods.monthStartDate, startDate));
+      return period || undefined;
+    } catch (error) {
+      console.error("Error getting calendar period by month:", error);
+      return undefined;
+    }
   }
 
-  async updateSchedule(id: number, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined> {
-    if (!this.isConnected) return this.fallbackStorage.updateSchedule(id, schedule);
-    
-    const [updatedSchedule] = await this.db
-      .update(schedules)
-      .set(schedule)
-      .where(eq(schedules.id, id))
+  async createCalendarPeriod(period: InsertCalendarPeriod): Promise<CalendarPeriod> {
+    const [newPeriod] = await db
+      .insert(calendarPeriods)
+      .values(period)
       .returning();
-    
-    return updatedSchedule;
+    return newPeriod;
+  }
+
+  async updateCalendarPeriod(id: number, period: Partial<InsertCalendarPeriod>): Promise<CalendarPeriod | undefined> {
+    try {
+      const [updatedPeriod] = await db
+        .update(calendarPeriods)
+        .set(period)
+        .where(eq(calendarPeriods.id, id))
+        .returning();
+      return updatedPeriod || undefined;
+    } catch (error) {
+      console.error("Error updating calendar period:", error);
+      return undefined;
+    }
   }
 
   // Bulk operations
-  async publishSchedule(scheduleId: number): Promise<boolean> {
-    if (!this.isConnected) return this.fallbackStorage.publishSchedule(scheduleId);
-    
-    // First find the schedule to get date range
-    const [schedule] = await this.db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.id, scheduleId));
-    
-    if (!schedule) return false;
-    
-    // Update the schedule status
-    await this.db
-      .update(schedules)
-      .set({ status: "published" })
-      .where(eq(schedules.id, scheduleId));
-    
-    // Update all shifts in the date range
-    await this.db
-      .update(shifts)
-      .set({ status: "published" })
-      .where(
-        and(
-          between(shifts.date, schedule.weekStartDate, schedule.weekEndDate),
-          eq(shifts.status, "draft")
-        )
-      );
-    
-    return true;
+  async publishCalendarPeriod(periodId: number): Promise<boolean> {
+    try {
+      await db
+        .update(calendarPeriods)
+        .set({ status: "published" })
+        .where(eq(calendarPeriods.id, periodId));
+      return true;
+    } catch (error) {
+      console.error("Error publishing calendar period:", error);
+      return false;
+    }
   }
 
-  async publishShifts(shiftIds: number[]): Promise<boolean> {
-    if (!this.isConnected) return this.fallbackStorage.publishShifts(shiftIds);
-    
-    if (shiftIds.length === 0) return true;
-    
-    // Update all shifts in the list to published
-    const result = await this.db
-      .update(shifts)
-      .set({ status: "published" })
-      .where(
-        eq(shifts.id, shiftIds[0]) // Drizzle has issues with in() operator, we'd implement differently in production
-      )
-      .returning({ id: shifts.id });
-    
-    return result.length > 0;
-  }
-  
-  // Additional properties required by the interface
-  get sessionStore() {
-    if (!this.isConnected) return this.fallbackStorage.sessionStore;
-    
-    throw new Error("Session store not implemented in DatabaseStorage");
+  async publishPermissions(permissionIds: number[]): Promise<boolean> {
+    try {
+      for (const id of permissionIds) {
+        await db
+          .update(permissions)
+          .set({ status: "published" })
+          .where(eq(permissions.id, id));
+      }
+      return true;
+    } catch (error) {
+      console.error("Error publishing permissions:", error);
+      return false;
+    }
   }
 }
