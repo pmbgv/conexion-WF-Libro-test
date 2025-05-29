@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import your custom styles */
-@import url('/static/css/styles.css');
-
 @keyframes pulse {
   0% {
     transform: scale(1);
