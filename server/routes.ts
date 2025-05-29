@@ -422,26 +422,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Shift routes
-  app.get("/api/shifts", async (req: Request, res: Response) => {
+  // Permission routes
+  app.get("/api/permissions", async (req: Request, res: Response) => {
     try {
       const { startDate, endDate, employeeId } = req.query;
       
       if (startDate && endDate) {
-        const shifts = await storage.getShiftsByWeek(
+        const permissions = await storage.getPermissionsByMonth(
           new Date(startDate as string), 
           new Date(endDate as string)
         );
-        return res.json(shifts);
+        return res.json(permissions);
       }
       
       if (employeeId) {
-        const shifts = await storage.getShiftsByEmployee(Number(employeeId));
-        return res.json(shifts);
+        const permissions = await storage.getPermissionsByEmployee(Number(employeeId));
+        return res.json(permissions);
       }
       
-      const shifts = await storage.getShifts();
-      res.json(shifts);
+      const permissions = await storage.getPermissions();
+      res.json(permissions);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
