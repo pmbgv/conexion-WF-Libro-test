@@ -23,6 +23,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Custom endpoint for receiving POST from another Replit
+  app.post("/actualizar", (req: Request, res: Response) => {
+    const { fecha, texto, token } = req.body;
+    
+    // Validate token
+    if (token !== "mi-token-seguro") {
+      return res.status(401).json({ message: "Token inválido" });
+    }
+    
+    // Print to console
+    console.log(`${fecha}: ${texto}`);
+    
+    // Return success response
+    res.status(200).json({ message: "Actualización recibida correctamente" });
+  });
+  
   // Add API routes
   
   // Employee routes
