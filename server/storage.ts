@@ -164,7 +164,11 @@ export class MemStorage implements IStorage {
   
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
     const id = this.currentEmployeeId++;
-    const newEmployee: Employee = { ...employee, id };
+    const newEmployee: Employee = { 
+      ...employee, 
+      id,
+      active: employee.active ?? true 
+    };
     this.employees.set(id, newEmployee);
     return newEmployee;
   }
@@ -214,7 +218,12 @@ export class MemStorage implements IStorage {
   
   async createPermission(permission: InsertPermission): Promise<Permission> {
     const id = this.currentPermissionId++;
-    const newPermission: Permission = { ...permission, id };
+    const newPermission: Permission = { 
+      ...permission, 
+      id,
+      status: permission.status ?? "draft",
+      reason: permission.reason ?? null
+    };
     this.permissions.set(id, newPermission);
     return newPermission;
   }
@@ -245,7 +254,12 @@ export class MemStorage implements IStorage {
   
   async createCalendarPeriod(period: InsertCalendarPeriod): Promise<CalendarPeriod> {
     const id = this.currentCalendarPeriodId++;
-    const newPeriod: CalendarPeriod = { ...period, id };
+    const newPeriod: CalendarPeriod = { 
+      ...period, 
+      id,
+      status: period.status ?? "draft",
+      statistics: period.statistics ?? {}
+    };
     this.calendarPeriods.set(id, newPeriod);
     return newPeriod;
   }
@@ -300,4 +314,4 @@ export class MemStorage implements IStorage {
 }
 
 // Create the appropriate storage implementation based on database availability
-export const storage: IStorage = db ? new DatabaseStorage(db) : new MemStorage();
+export const storage: IStorage = new MemStorage();

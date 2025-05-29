@@ -447,24 +447,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/shifts/:id", async (req: Request, res: Response) => {
+  app.get("/api/permissions/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const shift = await storage.getShift(Number(id));
+      const permission = await storage.getPermission(Number(id));
       
-      if (!shift) {
-        return res.status(404).json({ message: "Shift not found" });
+      if (!permission) {
+        return res.status(404).json({ message: "Permission not found" });
       }
       
-      res.json(shift);
+      res.json(permission);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
   
-  app.post("/api/shifts", async (req: Request, res: Response) => {
+  app.post("/api/permissions", async (req: Request, res: Response) => {
     try {
-      console.log("Received shift data:", req.body);
+      console.log("Received permission data:", req.body);
       
       // Ensure date is properly converted to Date object
       const data = {
@@ -472,11 +472,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: new Date(req.body.date)
       };
       
-      const shiftData = insertShiftSchema.parse(data);
-      const shift = await storage.createShift(shiftData);
-      res.status(201).json(shift);
+      const permissionData = insertPermissionSchema.parse(data);
+      const permission = await storage.createPermission(permissionData);
+      res.status(201).json(permission);
     } catch (error: any) {
-      console.error("Error creating shift:", error);
+      console.error("Error creating permission:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid shift data", errors: error.errors });
       }

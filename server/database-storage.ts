@@ -2,9 +2,9 @@ import { IStorage } from './storage';
 import { 
   users, type User, type InsertUser,
   employees, type Employee, type InsertEmployee,
-  shifts, type Shift, type InsertShift,
-  schedules, type Schedule, type InsertSchedule,
-  type ShiftWithEmployee
+  permissions, type Permission, type InsertPermission,
+  calendarPeriods, type CalendarPeriod, type InsertCalendarPeriod,
+  type PermissionWithEmployee
 } from "@shared/schema";
 import { db } from './db';
 import { eq, and, between } from 'drizzle-orm';
@@ -96,37 +96,37 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Shift methods
-  async getShifts(): Promise<Shift[]> {
-    if (!this.isConnected) return this.fallbackStorage.getShifts();
+  // Permission methods
+  async getPermissions(): Promise<Permission[]> {
+    if (!this.isConnected) return this.fallbackStorage.getPermissions();
     
-    return this.db.select().from(shifts);
+    return this.db.select().from(permissions);
   }
 
-  async getShiftsByEmployee(employeeId: number): Promise<Shift[]> {
-    if (!this.isConnected) return this.fallbackStorage.getShiftsByEmployee(employeeId);
+  async getPermissionsByEmployee(employeeId: number): Promise<Permission[]> {
+    if (!this.isConnected) return this.fallbackStorage.getPermissionsByEmployee(employeeId);
     
     return this.db
       .select()
-      .from(shifts)
-      .where(eq(shifts.employeeId, employeeId));
+      .from(permissions)
+      .where(eq(permissions.employeeId, employeeId));
   }
 
-  async getShiftsByWeek(startDate: Date, endDate: Date): Promise<ShiftWithEmployee[]> {
-    if (!this.isConnected) return this.fallbackStorage.getShiftsByWeek(startDate, endDate);
+  async getPermissionsByMonth(startDate: Date, endDate: Date): Promise<PermissionWithEmployee[]> {
+    if (!this.isConnected) return this.fallbackStorage.getPermissionsByMonth(startDate, endDate);
     
-    // First get all shifts in the date range
-    const shiftsResult = await this.db
+    // First get all permissions in the date range
+    const permissionsResult = await this.db
       .select()
-      .from(shifts)
+      .from(permissions)
       .where(
         and(
-          between(shifts.date, startDate, endDate)
+          between(permissions.date, startDate, endDate)
         )
       );
     
-    // Now fetch all the employees for these shifts
-    const employeeIds = [...new Set(shiftsResult.map(shift => shift.employeeId))];
+    // Now fetch all the employees for these permissions
+    const employeeIds = [...new Set(permissionsResult.map(permission => permission.employeeId))];
     const employeesResult = await this.db
       .select()
       .from(employees)
@@ -141,12 +141,12 @@ export class DatabaseStorage implements IStorage {
     employeesResult.forEach(emp => employeeMap.set(emp.id, emp));
     
     // Join the data
-    return shiftsResult.map(shift => {
-      const employee = employeeMap.get(shift.employeeId);
+    return permissionsResult.map(permission => {
+      const employee = employeeMap.get(permission.employeeId);
       if (!employee) {
-        throw new Error(`Employee with ID ${shift.employeeId} not found`);
+        throw new Error(`Employee with ID ${permission.employeeId} not found`);
       }
-      return { ...shift, employee };
+      return { ...permission, employee };
     });
   }
 
