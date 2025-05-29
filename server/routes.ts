@@ -22,6 +22,22 @@ interface Notification {
 
 const NOTIFICATIONS_FILE = path.join(process.cwd(), 'notifications.json');
 
+// Create some test notifications on startup
+const testNotifications: Notification[] = [
+  {
+    id: 1,
+    fecha: "2024-01-15",
+    texto: "Notificación de prueba - Sistema iniciado correctamente",
+    timestamp: new Date()
+  },
+  {
+    id: 2,
+    fecha: "2024-01-15", 
+    texto: "Segunda notificación de prueba para verificar funcionamiento",
+    timestamp: new Date()
+  }
+];
+
 // Load notifications from file
 function loadNotifications(): Notification[] {
   try {
@@ -48,13 +64,24 @@ function saveNotifications(notifications: Notification[]) {
       lastId: Math.max(...notifications.map(n => n.id), 0)
     };
     fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(data, null, 2));
+    console.log(`📝 Guardadas ${notifications.length} notificaciones en ${NOTIFICATIONS_FILE}`);
   } catch (error) {
-    console.error('Error saving notifications:', error);
+    console.error('❌ Error saving notifications:', error);
+    console.error('File path:', NOTIFICATIONS_FILE);
+    console.error('Current working directory:', process.cwd());
   }
 }
 
 // Initialize notifications storage
 let notifications: Notification[] = loadNotifications();
+
+// If no notifications exist, add test data
+if (notifications.length === 0) {
+  notifications = testNotifications;
+  saveNotifications(notifications);
+  console.log("✅ Notificaciones de prueba creadas");
+}
+
 let notificationIdCounter = Math.max(...notifications.map(n => n.id), 0) + 1;
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -72,10 +99,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Custom endpoint for receiving POST from another Replit
   app.post("/actualizar", (req: Request, res: Response) => {
+    console.log("📨 Recibida petición POST /actualizar:", req.body);
+    
     const { fecha, texto, token } = req.body;
     
     // Validate token
     if (token !== "mi-token-seguro") {
+      console.log("❌ Token inválido recibido:", token);
       return res.status(401).json({ message: "Token inválido" });
     }
     
@@ -92,10 +122,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     saveNotifications(notifications);
     
     // Print to console
-    console.log(`${fecha}: ${texto}`);
+    console.log(`✅ Nueva notificación: ${fecha}: ${texto}`);
+    console.log(`📊 Total notificaciones: ${notifications.length}`);
     
     // Return success response
-    res.status(200).json({ message: "Actualización recibida correctamente" });
+    res.status(200).json({ 
+      message: "Actualización recibida correctamente",
+      notificationId: notification.id,
+      totalNotifications: notifications.length
+    });
+  });
+
+  // Debug endpoint to check notifications status
+  app.get("/api/notifications/debug", (req: Request, res: Response) => {
+    res.json({
+      totalNotifications: notifications.length,
+      notificationsFile: NOTIFICATIONS_FILE,
+      fileExists: fs.existsSync(NOTIFICATIONS_FILE),
+      currentWorkingDir: process.cwd(),
+      notifications: notifications
+    });
   });
 
   // Endpoint to get notifications
