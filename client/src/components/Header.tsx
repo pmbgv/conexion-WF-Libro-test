@@ -13,9 +13,7 @@ export default function Header() {
             <Link href="/">
               <a className="text-primary font-medium">Dashboard</a>
             </Link>
-            <a href="#" className="text-[#2C3E50] hover:text-primary">Employees</a>
-            <a href="#" className="text-[#2C3E50] hover:text-primary">Reports</a>
-            <a href="#" className="text-[#2C3E50] hover:text-primary">Settings</a>
+            <a href="/notificaciones" className="text-[#2C3E50] hover:text-primary">Notificaciones</a>
           </div>
         </div>
         <div className="flex items-center space-x-3">
