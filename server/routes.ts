@@ -177,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<string, Array<{texto: string, timestamp: Date, id: number}>>);
 
-    // Generate HTML response using your custom template
+      // Generate HTML response using your custom template
     const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -361,7 +361,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     </body>
     </html>`;
 
-    res.send(html);
+      res.send(html);
+    } catch (error) {
+      console.error("Error getting notifications:", error);
+      res.status(500).send("Error interno del servidor");
+    }
   });
   
   // Add API routes
