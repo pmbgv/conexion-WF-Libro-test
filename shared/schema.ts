@@ -100,3 +100,20 @@ export const permissionsRelations = relations(permissions, ({ one }) => ({
     references: [employees.id],
   }),
 }));
+
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  fecha: text("fecha").notNull(),
+  texto: text("texto").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  fecha: true,
+  texto: true,
+  timestamp: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
