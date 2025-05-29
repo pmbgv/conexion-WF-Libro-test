@@ -6,8 +6,11 @@ import { checkDatabase } from "./db";
 import { 
   insertEmployeeSchema, 
   insertPermissionSchema,
-  insertCalendarPeriodSchema
+  insertCalendarPeriodSchema,
+  insertNotificationSchema,
+  notifications as notificationsTable
 } from "@shared/schema";
+import { db } from "./db";
 import { z } from "zod";
 import * as fs from "fs";
 import * as path from "path";
@@ -98,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Custom endpoint for receiving POST from another Replit
-  app.post("/actualizar", (req: Request, res: Response) => {
+  app.post("/actualizar", async (req: Request, res: Response) => {
     console.log("📨 Recibida petición POST /actualizar:", req.body);
     
     const { fecha, texto, token } = req.body;
@@ -109,57 +112,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Token inválido" });
     }
     
-    // Store notification persistently
-    const notification: Notification = {
-      id: notificationIdCounter++,
-      fecha,
-      texto,
-      timestamp: new Date()
-    };
-    notifications.push(notification);
-    
-    // Save to file for persistence
-    saveNotifications(notifications);
-    
-    // Print to console
-    console.log(`✅ Nueva notificación: ${fecha}: ${texto}`);
-    console.log(`📊 Total notificaciones: ${notifications.length}`);
-    
-    // Return success response
-    res.status(200).json({ 
-      message: "Actualización recibida correctamente",
-      notificationId: notification.id,
-      totalNotifications: notifications.length
-    });
+    try {
+      // Store notification in database
+      const [newNotification] = await db
+        .insert(notificationsTable)
+        .values({
+          fecha,
+          texto,
+          timestamp: new Date()
+        })
+        .returning();
+      
+      // Print to console
+      console.log(`✅ Nueva notificación: ${fecha}: ${texto}`);
+      
+      // Get total count
+      const allNotifications = await db.select().from(notificationsTable);
+      console.log(`📊 Total notificaciones: ${allNotifications.length}`);
+      
+      // Return success response
+      res.status(200).json({ 
+        message: "Actualización recibida correctamente",
+        notificationId: newNotification.id,
+        totalNotifications: allNotifications.length
+      });
+    } catch (error) {
+      console.error("Error creating notification:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
   });
 
   // Debug endpoint to check notifications status
-  app.get("/api/notifications/debug", (req: Request, res: Response) => {
-    res.json({
-      totalNotifications: notifications.length,
-      notificationsFile: NOTIFICATIONS_FILE,
-      fileExists: fs.existsSync(NOTIFICATIONS_FILE),
-      currentWorkingDir: process.cwd(),
-      notifications: notifications
-    });
+  app.get("/api/notifications/debug", async (req: Request, res: Response) => {
+    try {
+      const allNotifications = await db.select().from(notificationsTable);
+      res.json({
+        totalNotifications: allNotifications.length,
+        database: "PostgreSQL",
+        notifications: allNotifications
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Error accessing database" });
+    }
   });
 
   // Endpoint to get notifications
-  app.get("/notificaciones", (req: Request, res: Response) => {
-    // Sort notifications by timestamp (newest first) and group by date
-    const sortedNotifications = notifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    
-    const groupedNotifications = sortedNotifications.reduce((acc, notification) => {
-      if (!acc[notification.fecha]) {
-        acc[notification.fecha] = [];
-      }
-      acc[notification.fecha].push({
-        texto: notification.texto,
-        timestamp: notification.timestamp,
-        id: notification.id
-      });
-      return acc;
-    }, {} as Record<string, Array<{texto: string, timestamp: Date, id: number}>>);
+  app.get("/notificaciones", async (req: Request, res: Response) => {
+    try {
+      // Get notifications from database
+      const allNotifications = await db.select().from(notificationsTable);
+      
+      // Sort notifications by timestamp (newest first) and group by date
+      const sortedNotifications = allNotifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      const groupedNotifications = sortedNotifications.reduce((acc, notification) => {
+        if (!acc[notification.fecha]) {
+          acc[notification.fecha] = [];
+        }
+        acc[notification.fecha].push({
+          texto: notification.texto,
+          timestamp: notification.timestamp,
+          id: notification.id
+        });
+        return acc;
+      }, {} as Record<string, Array<{texto: string, timestamp: Date, id: number}>>);
 
     // Generate HTML response using your custom template
     const html = `
