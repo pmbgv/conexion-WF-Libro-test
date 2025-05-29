@@ -10,6 +10,17 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// In-memory storage for notifications
+interface Notification {
+  id: number;
+  fecha: string;
+  texto: string;
+  timestamp: Date;
+}
+
+let notifications: Notification[] = [];
+let notificationIdCounter = 1;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
   setupAuth(app);
@@ -32,11 +43,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Token inválido" });
     }
     
+    // Store notification in memory
+    const notification: Notification = {
+      id: notificationIdCounter++,
+      fecha,
+      texto,
+      timestamp: new Date()
+    };
+    notifications.push(notification);
+    
     // Print to console
     console.log(`${fecha}: ${texto}`);
     
     // Return success response
     res.status(200).json({ message: "Actualización recibida correctamente" });
+  });
+
+  // Endpoint to get notifications
+  app.get("/notificaciones", (req: Request, res: Response) => {
+    // Group notifications by date
+    const groupedNotifications = notifications.reduce((acc, notification) => {
+      if (!acc[notification.fecha]) {
+        acc[notification.fecha] = [];
+      }
+      acc[notification.fecha].push(notification.texto);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    // Generate HTML response
+    const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Notificaciones de VictoriaFlow</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 40px; 
+                background-color: #f5f7fa;
+                color: #333;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { 
+                color: #1976D2; 
+                border-bottom: 2px solid #1976D2;
+                padding-bottom: 10px;
+            }
+            .date-group {
+                margin-bottom: 25px;
+                border-left: 4px solid #4CAF50;
+                padding-left: 15px;
+            }
+            .date-header {
+                font-size: 18px;
+                font-weight: bold;
+                color: #1976D2;
+                margin-bottom: 10px;
+            }
+            .notification {
+                background: #f8f9fa;
+                padding: 12px;
+                margin: 8px 0;
+                border-radius: 4px;
+                border-left: 3px solid #4CAF50;
+            }
+            .no-notifications {
+                text-align: center;
+                color: #666;
+                font-style: italic;
+                padding: 40px;
+            }
+            .count {
+                background: #1976D2;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                margin-left: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📢 Notificaciones de VictoriaFlow</h1>
+            ${Object.keys(groupedNotifications).length === 0 
+                ? '<div class="no-notifications">No hay notificaciones aún</div>'
+                : Object.entries(groupedNotifications)
+                    .sort(([a], [b]) => b.localeCompare(a)) // Sort dates descending
+                    .map(([fecha, textos]) => `
+                        <div class="date-group">
+                            <div class="date-header">
+                                📅 ${fecha} 
+                                <span class="count">${textos.length}</span>
+                            </div>
+                            ${textos.map(texto => `
+                                <div class="notification">${texto}</div>
+                            `).join('')}
+                        </div>
+                    `).join('')
+            }
+        </div>
+    </body>
+    </html>`;
+
+    res.send(html);
   });
   
   // Add API routes
