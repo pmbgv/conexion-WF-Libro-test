@@ -9,8 +9,10 @@ import {
   insertScheduleSchema
 } from "@shared/schema";
 import { z } from "zod";
+import * as fs from "fs";
+import * as path from "path";
 
-// In-memory storage for notifications
+// Persistent storage for notifications
 interface Notification {
   id: number;
   fecha: string;
@@ -18,8 +20,42 @@ interface Notification {
   timestamp: Date;
 }
 
-let notifications: Notification[] = [];
-let notificationIdCounter = 1;
+const NOTIFICATIONS_FILE = path.join(process.cwd(), 'notifications.json');
+
+// Load notifications from file
+function loadNotifications(): Notification[] {
+  try {
+    if (fs.existsSync(NOTIFICATIONS_FILE)) {
+      const data = fs.readFileSync(NOTIFICATIONS_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      // Convert timestamp strings back to Date objects
+      return parsed.notifications.map((n: any) => ({
+        ...n,
+        timestamp: new Date(n.timestamp)
+      }));
+    }
+  } catch (error) {
+    console.error('Error loading notifications:', error);
+  }
+  return [];
+}
+
+// Save notifications to file
+function saveNotifications(notifications: Notification[]) {
+  try {
+    const data = {
+      notifications,
+      lastId: Math.max(...notifications.map(n => n.id), 0)
+    };
+    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Error saving notifications:', error);
+  }
+}
+
+// Initialize notifications storage
+let notifications: Notification[] = loadNotifications();
+let notificationIdCounter = Math.max(...notifications.map(n => n.id), 0) + 1;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
@@ -43,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Token inválido" });
     }
     
-    // Store notification in memory
+    // Store notification persistently
     const notification: Notification = {
       id: notificationIdCounter++,
       fecha,
@@ -51,6 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date()
     };
     notifications.push(notification);
+    
+    // Save to file for persistence
+    saveNotifications(notifications);
     
     // Print to console
     console.log(`${fecha}: ${texto}`);
@@ -61,14 +100,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoint to get notifications
   app.get("/notificaciones", (req: Request, res: Response) => {
-    // Group notifications by date
-    const groupedNotifications = notifications.reduce((acc, notification) => {
+    // Sort notifications by timestamp (newest first) and group by date
+    const sortedNotifications = notifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    
+    const groupedNotifications = sortedNotifications.reduce((acc, notification) => {
       if (!acc[notification.fecha]) {
         acc[notification.fecha] = [];
       }
-      acc[notification.fecha].push(notification.texto);
+      acc[notification.fecha].push({
+        texto: notification.texto,
+        timestamp: notification.timestamp,
+        id: notification.id
+      });
       return acc;
-    }, {} as Record<string, string[]>);
+    }, {} as Record<string, Array<{texto: string, timestamp: Date, id: number}>>);
 
     // Generate HTML response
     const html = `
@@ -115,6 +160,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 margin: 8px 0;
                 border-radius: 4px;
                 border-left: 3px solid #4CAF50;
+                position: relative;
+            }
+            .notification-time {
+                font-size: 11px;
+                color: #666;
+                float: right;
+                margin-top: -2px;
+            }
+            .notification-id {
+                font-size: 10px;
+                color: #999;
+                position: absolute;
+                top: 4px;
+                right: 4px;
             }
             .no-notifications {
                 text-align: center;
@@ -139,14 +198,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ? '<div class="no-notifications">No hay notificaciones aún</div>'
                 : Object.entries(groupedNotifications)
                     .sort(([a], [b]) => b.localeCompare(a)) // Sort dates descending
-                    .map(([fecha, textos]) => `
+                    .map(([fecha, notificationList]) => `
                         <div class="date-group">
                             <div class="date-header">
                                 📅 ${fecha} 
-                                <span class="count">${textos.length}</span>
+                                <span class="count">${notificationList.length}</span>
                             </div>
-                            ${textos.map(texto => `
-                                <div class="notification">${texto}</div>
+                            ${notificationList.map(notif => `
+                                <div class="notification">
+                                    <div class="notification-id">#${notif.id}</div>
+                                    <div class="notification-time">${notif.timestamp.toLocaleTimeString('es-ES')}</div>
+                                    <div style="margin-right: 80px;">${notif.texto}</div>
+                                </div>
                             `).join('')}
                         </div>
                     `).join('')
