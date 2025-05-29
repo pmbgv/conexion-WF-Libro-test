@@ -5,8 +5,8 @@ import { setupAuth } from "./auth";
 import { checkDatabase } from "./db";
 import { 
   insertEmployeeSchema, 
-  insertShiftSchema,
-  insertScheduleSchema
+  insertPermissionSchema,
+  insertCalendarPeriodSchema
 } from "@shared/schema";
 import { z } from "zod";
 import * as fs from "fs";

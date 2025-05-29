@@ -32,42 +32,36 @@ export const insertEmployeeSchema = createInsertSchema(employees).pick({
   active: true,
 });
 
-// Shifts table
-export const shifts = pgTable("shifts", {
+// Permissions table (replaces shifts)
+export const permissions = pgTable("permissions", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
-  scheduleId: integer("schedule_id"), // Optional, will be linked to a schedule when available
   date: timestamp("date").notNull(),
-  startTime: text("start_time").notNull(),
-  endTime: text("end_time").notNull(),
-  position: text("position").notNull(),
-  notes: text("notes"),
+  type: text("type").notNull(), // "Sin permiso", "Vacaciones", "Administrativo", etc.
+  reason: text("reason"), // Optional reason or notes
   status: text("status").notNull().default("draft"), // "draft" or "published"
 });
 
-export const insertShiftSchema = createInsertSchema(shifts).pick({
+export const insertPermissionSchema = createInsertSchema(permissions).pick({
   employeeId: true,
-  scheduleId: true,
   date: true,
-  startTime: true,
-  endTime: true,
-  position: true,
-  notes: true,
+  type: true,
+  reason: true,
   status: true,
 });
 
-// Schedule table
-export const schedules = pgTable("schedules", {
+// Calendar periods table (replaces schedules, now handles monthly periods)
+export const calendarPeriods = pgTable("calendar_periods", {
   id: serial("id").primaryKey(),
-  weekStartDate: timestamp("week_start_date").notNull(),
-  weekEndDate: timestamp("week_end_date").notNull(),
+  monthStartDate: timestamp("month_start_date").notNull(),
+  monthEndDate: timestamp("month_end_date").notNull(),
   status: text("status").notNull().default("draft"), // "draft" or "published"
   statistics: json("statistics"),
 });
 
-export const insertScheduleSchema = createInsertSchema(schedules).pick({
-  weekStartDate: true,
-  weekEndDate: true,
+export const insertCalendarPeriodSchema = createInsertSchema(calendarPeriods).pick({
+  monthStartDate: true,
+  monthEndDate: true,
   status: true,
   statistics: true,
 });
@@ -79,17 +73,17 @@ export type User = typeof users.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 
-export type InsertShift = z.infer<typeof insertShiftSchema>;
-export type Shift = typeof shifts.$inferSelect;
+export type InsertPermission = z.infer<typeof insertPermissionSchema>;
+export type Permission = typeof permissions.$inferSelect;
 
-export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
-export type Schedule = typeof schedules.$inferSelect;
+export type InsertCalendarPeriod = z.infer<typeof insertCalendarPeriodSchema>;
+export type CalendarPeriod = typeof calendarPeriods.$inferSelect;
 
 // Extended types for UI
-export type ShiftWithEmployee = Shift & {
+export type PermissionWithEmployee = Permission & {
   employee: Employee;
 };
 
-export type ScheduleWithShifts = Schedule & {
-  shifts: ShiftWithEmployee[];
+export type CalendarPeriodWithPermissions = CalendarPeriod & {
+  permissions: PermissionWithEmployee[];
 };

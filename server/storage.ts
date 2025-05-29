@@ -1,9 +1,9 @@
 import { 
   users, type User, type InsertUser,
   employees, type Employee, type InsertEmployee,
-  shifts, type Shift, type InsertShift,
-  schedules, type Schedule, type InsertSchedule,
-  type ShiftWithEmployee
+  permissions, type Permission, type InsertPermission,
+  calendarPeriods, type CalendarPeriod, type InsertCalendarPeriod,
+  type PermissionWithEmployee
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -26,24 +26,24 @@ export interface IStorage {
   updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: number): Promise<boolean>;
   
-  // Shift methods
-  getShifts(): Promise<Shift[]>;
-  getShiftsByEmployee(employeeId: number): Promise<Shift[]>;
-  getShiftsByWeek(startDate: Date, endDate: Date): Promise<ShiftWithEmployee[]>;
-  getShift(id: number): Promise<Shift | undefined>;
-  createShift(shift: InsertShift): Promise<Shift>;
-  updateShift(id: number, shift: Partial<InsertShift>): Promise<Shift | undefined>;
-  deleteShift(id: number): Promise<boolean>;
+  // Permission methods
+  getPermissions(): Promise<Permission[]>;
+  getPermissionsByEmployee(employeeId: number): Promise<Permission[]>;
+  getPermissionsByMonth(startDate: Date, endDate: Date): Promise<PermissionWithEmployee[]>;
+  getPermission(id: number): Promise<Permission | undefined>;
+  createPermission(permission: InsertPermission): Promise<Permission>;
+  updatePermission(id: number, permission: Partial<InsertPermission>): Promise<Permission | undefined>;
+  deletePermission(id: number): Promise<boolean>;
   
-  // Schedule methods
-  getSchedules(): Promise<Schedule[]>;
-  getScheduleByWeek(startDate: Date): Promise<Schedule | undefined>;
-  createSchedule(schedule: InsertSchedule): Promise<Schedule>;
-  updateSchedule(id: number, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined>;
+  // Calendar period methods
+  getCalendarPeriods(): Promise<CalendarPeriod[]>;
+  getCalendarPeriodByMonth(startDate: Date): Promise<CalendarPeriod | undefined>;
+  createCalendarPeriod(period: InsertCalendarPeriod): Promise<CalendarPeriod>;
+  updateCalendarPeriod(id: number, period: Partial<InsertCalendarPeriod>): Promise<CalendarPeriod | undefined>;
   
   // Bulk operations
-  publishSchedule(scheduleId: number): Promise<boolean>;
-  publishShifts(shiftIds: number[]): Promise<boolean>;
+  publishCalendarPeriod(periodId: number): Promise<boolean>;
+  publishPermissions(permissionIds: number[]): Promise<boolean>;
   
   // Session store for auth
   sessionStore: session.Store;
@@ -53,26 +53,26 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private employees: Map<number, Employee>;
-  private shifts: Map<number, Shift>;
-  private schedules: Map<number, Schedule>;
+  private permissions: Map<number, Permission>;
+  private calendarPeriods: Map<number, CalendarPeriod>;
   
   private currentUserId: number;
   private currentEmployeeId: number;
-  private currentShiftId: number;
-  private currentScheduleId: number;
+  private currentPermissionId: number;
+  private currentCalendarPeriodId: number;
   
   public sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
     this.employees = new Map();
-    this.shifts = new Map();
-    this.schedules = new Map();
+    this.permissions = new Map();
+    this.calendarPeriods = new Map();
     
     this.currentUserId = 1;
     this.currentEmployeeId = 1;
-    this.currentShiftId = 1;
-    this.currentScheduleId = 1;
+    this.currentPermissionId = 1;
+    this.currentCalendarPeriodId = 1;
     
     // Create memory store for sessions
     this.sessionStore = new MemoryStore({
@@ -104,20 +104,17 @@ export class MemStorage implements IStorage {
       this.createEmployee(emp);
     });
     
-    // Create current week schedule
+    // Create current month calendar period
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
     
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
     
-    this.createSchedule({
-      weekStartDate: startOfWeek,
-      weekEndDate: endOfWeek,
+    this.createCalendarPeriod({
+      monthStartDate: startOfMonth,
+      monthEndDate: endOfMonth,
       status: "draft",
       statistics: { 
         totalHours: 178,
@@ -185,114 +182,114 @@ export class MemStorage implements IStorage {
     return this.employees.delete(id);
   }
   
-  // Shift methods
-  async getShifts(): Promise<Shift[]> {
-    return Array.from(this.shifts.values());
+  // Permission methods
+  async getPermissions(): Promise<Permission[]> {
+    return Array.from(this.permissions.values());
   }
   
-  async getShiftsByEmployee(employeeId: number): Promise<Shift[]> {
-    return Array.from(this.shifts.values()).filter(
-      (shift) => shift.employeeId === employeeId
+  async getPermissionsByEmployee(employeeId: number): Promise<Permission[]> {
+    return Array.from(this.permissions.values()).filter(
+      (permission) => permission.employeeId === employeeId
     );
   }
   
-  async getShiftsByWeek(startDate: Date, endDate: Date): Promise<ShiftWithEmployee[]> {
-    const shifts = Array.from(this.shifts.values()).filter(shift => {
-      const shiftDate = new Date(shift.date);
-      return shiftDate >= startDate && shiftDate <= endDate;
+  async getPermissionsByMonth(startDate: Date, endDate: Date): Promise<PermissionWithEmployee[]> {
+    const permissions = Array.from(this.permissions.values()).filter(permission => {
+      const permissionDate = new Date(permission.date);
+      return permissionDate >= startDate && permissionDate <= endDate;
     });
     
-    return shifts.map(shift => {
-      const employee = this.employees.get(shift.employeeId);
+    return permissions.map(permission => {
+      const employee = this.employees.get(permission.employeeId);
       if (!employee) {
-        throw new Error(`Employee with ID ${shift.employeeId} not found`);
+        throw new Error(`Employee with ID ${permission.employeeId} not found`);
       }
-      return { ...shift, employee };
+      return { ...permission, employee };
     });
   }
   
-  async getShift(id: number): Promise<Shift | undefined> {
-    return this.shifts.get(id);
+  async getPermission(id: number): Promise<Permission | undefined> {
+    return this.permissions.get(id);
   }
   
-  async createShift(shift: InsertShift): Promise<Shift> {
-    const id = this.currentShiftId++;
-    const newShift: Shift = { ...shift, id };
-    this.shifts.set(id, newShift);
-    return newShift;
+  async createPermission(permission: InsertPermission): Promise<Permission> {
+    const id = this.currentPermissionId++;
+    const newPermission: Permission = { ...permission, id };
+    this.permissions.set(id, newPermission);
+    return newPermission;
   }
   
-  async updateShift(id: number, shift: Partial<InsertShift>): Promise<Shift | undefined> {
-    const existingShift = this.shifts.get(id);
-    if (!existingShift) return undefined;
+  async updatePermission(id: number, permission: Partial<InsertPermission>): Promise<Permission | undefined> {
+    const existingPermission = this.permissions.get(id);
+    if (!existingPermission) return undefined;
     
-    const updatedShift = { ...existingShift, ...shift };
-    this.shifts.set(id, updatedShift);
-    return updatedShift;
+    const updatedPermission = { ...existingPermission, ...permission };
+    this.permissions.set(id, updatedPermission);
+    return updatedPermission;
   }
   
-  async deleteShift(id: number): Promise<boolean> {
-    return this.shifts.delete(id);
+  async deletePermission(id: number): Promise<boolean> {
+    return this.permissions.delete(id);
   }
   
-  // Schedule methods
-  async getSchedules(): Promise<Schedule[]> {
-    return Array.from(this.schedules.values());
+  // Calendar period methods
+  async getCalendarPeriods(): Promise<CalendarPeriod[]> {
+    return Array.from(this.calendarPeriods.values());
   }
   
-  async getScheduleByWeek(startDate: Date): Promise<Schedule | undefined> {
-    return Array.from(this.schedules.values()).find(
-      (schedule) => new Date(schedule.weekStartDate).toDateString() === startDate.toDateString()
+  async getCalendarPeriodByMonth(startDate: Date): Promise<CalendarPeriod | undefined> {
+    return Array.from(this.calendarPeriods.values()).find(
+      (period) => new Date(period.monthStartDate).toDateString() === startDate.toDateString()
     );
   }
   
-  async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
-    const id = this.currentScheduleId++;
-    const newSchedule: Schedule = { ...schedule, id };
-    this.schedules.set(id, newSchedule);
-    return newSchedule;
+  async createCalendarPeriod(period: InsertCalendarPeriod): Promise<CalendarPeriod> {
+    const id = this.currentCalendarPeriodId++;
+    const newPeriod: CalendarPeriod = { ...period, id };
+    this.calendarPeriods.set(id, newPeriod);
+    return newPeriod;
   }
   
-  async updateSchedule(id: number, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined> {
-    const existingSchedule = this.schedules.get(id);
-    if (!existingSchedule) return undefined;
+  async updateCalendarPeriod(id: number, period: Partial<InsertCalendarPeriod>): Promise<CalendarPeriod | undefined> {
+    const existingPeriod = this.calendarPeriods.get(id);
+    if (!existingPeriod) return undefined;
     
-    const updatedSchedule = { ...existingSchedule, ...schedule };
-    this.schedules.set(id, updatedSchedule);
-    return updatedSchedule;
+    const updatedPeriod = { ...existingPeriod, ...period };
+    this.calendarPeriods.set(id, updatedPeriod);
+    return updatedPeriod;
   }
   
   // Bulk operations
-  async publishSchedule(scheduleId: number): Promise<boolean> {
-    const schedule = this.schedules.get(scheduleId);
-    if (!schedule) return false;
+  async publishCalendarPeriod(periodId: number): Promise<boolean> {
+    const period = this.calendarPeriods.get(periodId);
+    if (!period) return false;
     
-    // Update schedule status
-    this.schedules.set(scheduleId, { ...schedule, status: "published" });
+    // Update period status
+    this.calendarPeriods.set(periodId, { ...period, status: "published" });
     
-    // Update all related shifts to published
-    const startDate = new Date(schedule.weekStartDate);
-    const endDate = new Date(schedule.weekEndDate);
+    // Update all related permissions to published
+    const startDate = new Date(period.monthStartDate);
+    const endDate = new Date(period.monthEndDate);
     
-    Array.from(this.shifts.values())
-      .filter(shift => {
-        const shiftDate = new Date(shift.date);
-        return shiftDate >= startDate && shiftDate <= endDate && shift.status === "draft";
+    Array.from(this.permissions.values())
+      .filter(permission => {
+        const permissionDate = new Date(permission.date);
+        return permissionDate >= startDate && permissionDate <= endDate && permission.status === "draft";
       })
-      .forEach(shift => {
-        this.shifts.set(shift.id, { ...shift, status: "published" });
+      .forEach(permission => {
+        this.permissions.set(permission.id, { ...permission, status: "published" });
       });
     
     return true;
   }
   
-  async publishShifts(shiftIds: number[]): Promise<boolean> {
+  async publishPermissions(permissionIds: number[]): Promise<boolean> {
     let success = true;
     
-    shiftIds.forEach(id => {
-      const shift = this.shifts.get(id);
-      if (shift) {
-        this.shifts.set(id, { ...shift, status: "published" });
+    permissionIds.forEach(id => {
+      const permission = this.permissions.get(id);
+      if (permission) {
+        this.permissions.set(id, { ...permission, status: "published" });
       } else {
         success = false;
       }
