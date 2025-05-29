@@ -13,6 +13,7 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { PermissionWithEmployee } from "@shared/schema";
 
@@ -46,6 +47,7 @@ export default function MonthlyCalendar({
   onDateClick, 
   onMonthChange 
 }: MonthlyCalendarProps) {
+  const { getNotificationsForDate } = useNotifications();
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -111,6 +113,7 @@ export default function MonthlyCalendar({
         {/* Calendar Days */}
         {calendarDays.map((day) => {
           const dayPermissions = getPermissionsForDate(day);
+          const dayNotifications = getNotificationsForDate(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
           
           return (
@@ -135,6 +138,16 @@ export default function MonthlyCalendar({
                     title={`${permission.employee.name} - ${permission.type}`}
                   >
                     {permission.type}
+                  </div>
+                ))}
+                
+                {dayNotifications.map((notification) => (
+                  <div
+                    key={`notification-${notification.id}`}
+                    className="text-xs px-1 py-0.5 rounded text-center bg-blue-500 text-white"
+                    title={`Notificación: ${notification.texto}`}
+                  >
+                    {notification.texto}
                   </div>
                 ))}
               </div>

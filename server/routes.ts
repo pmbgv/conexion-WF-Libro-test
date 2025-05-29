@@ -142,6 +142,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to get notifications
+  app.get("/api/notifications", async (req: Request, res: Response) => {
+    try {
+      const allNotifications = await db.select().from(notificationsTable);
+      res.json(allNotifications);
+    } catch (error) {
+      console.error("Error getting notifications:", error);
+      res.status(500).json({ error: "Error accessing database" });
+    }
+  });
+
   // Debug endpoint to check notifications status
   app.get("/api/notifications/debug", async (req: Request, res: Response) => {
     try {
