@@ -14,29 +14,46 @@ async function migrateData() {
   
   try {
     // Migrate users
-    console.log("📤 Migrando usuarios...");
+    console.log("📤 Verificando usuarios...");
     const users = await memStorage.getUser(1); // Get admin user
     if (users) {
-      await dbStorage.createUser({
-        username: users.username,
-        password: users.password
-      });
-      console.log("✅ Usuario admin migrado");
+      const existingUser = await dbStorage.getUserByUsername(users.username);
+      if (!existingUser) {
+        await dbStorage.createUser({
+          username: users.username,
+          password: users.password
+        });
+        console.log("✅ Usuario admin migrado");
+      } else {
+        console.log("ℹ️ Usuario admin ya existe");
+      }
     }
     
     // Migrate employees
-    console.log("📤 Migrando empleados...");
+    console.log("📤 Verificando empleados...");
     const employees = await memStorage.getEmployees();
+    const existingEmployees = await dbStorage.getEmployees();
+    const existingEmails = new Set(existingEmployees.map(emp => emp.email));
+    
+    let migratedCount = 0;
     for (const employee of employees) {
-      await dbStorage.createEmployee({
-        name: employee.name,
-        position: employee.position,
-        email: employee.email,
-        initials: employee.initials,
-        active: employee.active
-      });
+      if (!existingEmails.has(employee.email)) {
+        await dbStorage.createEmployee({
+          name: employee.name,
+          position: employee.position,
+          email: employee.email,
+          initials: employee.initials,
+          active: employee.active
+        });
+        migratedCount++;
+      }
     }
-    console.log(`✅ ${employees.length} empleados migrados`);
+    
+    if (migratedCount > 0) {
+      console.log(`✅ ${migratedCount} empleados nuevos migrados`);
+    } else {
+      console.log("ℹ️ Todos los empleados ya existen");
+    }
     
     // Migrate calendar periods
     console.log("📤 Migrando períodos de calendario...");
@@ -71,20 +88,25 @@ async function migrateData() {
     
     if (fs.existsSync(notificationsPath)) {
       const notificationsData = fs.readFileSync(notificationsPath, 'utf8');
-      const notifications = JSON.parse(notificationsData);
+      const data = JSON.parse(notificationsData);
+      const notifications = data.notifications || [];
       
-      // Insert notifications using Drizzle ORM
-      const { notifications: notificationsTable } = await import("@shared/schema");
-      
-      for (const notification of notifications) {
-        await db.insert(notificationsTable).values({
-          fecha: notification.fecha,
-          texto: notification.texto,
-          timestamp: new Date(notification.timestamp)
-        });
+      if (notifications.length > 0) {
+        // Insert notifications using Drizzle ORM
+        const { notifications: notificationsTable } = await import("@shared/schema");
+        
+        for (const notification of notifications) {
+          await db.insert(notificationsTable).values({
+            fecha: notification.fecha,
+            texto: notification.texto,
+            timestamp: new Date(notification.timestamp)
+          });
+        }
+        
+        console.log(`✅ ${notifications.length} notificaciones migradas`);
+      } else {
+        console.log("ℹ️ No hay notificaciones para migrar");
       }
-      
-      console.log(`✅ ${notifications.length} notificaciones migradas`);
     } else {
       console.log("ℹ️ No se encontraron notificaciones para migrar");
     }
