@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve static files from your custom folders
+app.use('/static', express.static(path.join(process.cwd(), 'static')));
+app.use('/templates', express.static(path.join(process.cwd(), 'templates')));
 
 app.use((req, res, next) => {
   const start = Date.now();

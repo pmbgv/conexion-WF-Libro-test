@@ -115,105 +115,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return acc;
     }, {} as Record<string, Array<{texto: string, timestamp: Date, id: number}>>);
 
-    // Generate HTML response
+    // Generate HTML response using your custom template
     const html = `
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Notificaciones de VictoriaFlow</title>
+        <title>Notificaciones - VictoriaFlow</title>
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="stylesheet" href="/static/lib/fontawesome/css/fontawesome.min.css">
+        <link rel="stylesheet" href="/static/lib/fontawesome/css/light.min.css">
+        <link rel="stylesheet" href="/static/lib/fontawesome/css/solid.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;400;600;700&display=swap" rel="stylesheet">
         <style>
-            body { 
-                font-family: Arial, sans-serif; 
-                margin: 40px; 
-                background-color: #f5f7fa;
-                color: #333;
-            }
-            .container {
-                max-width: 800px;
+            .notification-container {
+                max-width: 1200px;
                 margin: 0 auto;
-                background: white;
-                padding: 30px;
+                padding: 20px;
+            }
+            .notification-card {
+                background: var(--gv-white);
+                border: 1px solid var(--gv-gray5);
                 border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                margin-bottom: 16px;
+                overflow: hidden;
             }
-            h1 { 
-                color: #1976D2; 
-                border-bottom: 2px solid #1976D2;
-                padding-bottom: 10px;
+            .notification-header {
+                background: var(--gv-lightblue6);
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--gv-gray5);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
             }
-            .date-group {
-                margin-bottom: 25px;
-                border-left: 4px solid #4CAF50;
-                padding-left: 15px;
+            .notification-date {
+                font-weight: 600;
+                color: var(--gv-lightblue2);
+                font-size: 16px;
             }
-            .date-header {
-                font-size: 18px;
-                font-weight: bold;
-                color: #1976D2;
-                margin-bottom: 10px;
-            }
-            .notification {
-                background: #f8f9fa;
-                padding: 12px;
-                margin: 8px 0;
-                border-radius: 4px;
-                border-left: 3px solid #4CAF50;
-                position: relative;
-            }
-            .notification-time {
-                font-size: 11px;
-                color: #666;
-                float: right;
-                margin-top: -2px;
-            }
-            .notification-id {
-                font-size: 10px;
-                color: #999;
-                position: absolute;
-                top: 4px;
-                right: 4px;
-            }
-            .no-notifications {
-                text-align: center;
-                color: #666;
-                font-style: italic;
-                padding: 40px;
-            }
-            .count {
-                background: #1976D2;
+            .notification-count {
+                background: var(--gv-lightblue2);
                 color: white;
-                padding: 2px 8px;
+                padding: 4px 12px;
                 border-radius: 12px;
                 font-size: 12px;
-                margin-left: 10px;
+                font-weight: 600;
+            }
+            .notification-item {
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--gv-gray7);
+                position: relative;
+            }
+            .notification-item:last-child {
+                border-bottom: none;
+            }
+            .notification-meta {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            .notification-id {
+                font-size: 12px;
+                color: var(--gv-gray3);
+                font-weight: 600;
+            }
+            .notification-time {
+                font-size: 12px;
+                color: var(--gv-gray3);
+            }
+            .notification-text {
+                color: var(--gv-gray1);
+                line-height: 1.5;
+                font-size: 14px;
+            }
+            .empty-state {
+                text-align: center;
+                padding: 60px 20px;
+                color: var(--gv-gray3);
+            }
+            .empty-state i {
+                font-size: 48px;
+                margin-bottom: 16px;
+                color: var(--gv-gray4);
+            }
+            .page-title {
+                color: var(--gv-gray1);
+                font-size: 24px;
+                font-weight: 700;
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
         </style>
     </head>
     <body>
-        <div class="container">
-            <h1>📢 Notificaciones de VictoriaFlow</h1>
-            ${Object.keys(groupedNotifications).length === 0 
-                ? '<div class="no-notifications">No hay notificaciones aún</div>'
-                : Object.entries(groupedNotifications)
-                    .sort(([a], [b]) => b.localeCompare(a)) // Sort dates descending
-                    .map(([fecha, notificationList]) => `
-                        <div class="date-group">
-                            <div class="date-header">
-                                📅 ${fecha} 
-                                <span class="count">${notificationList.length}</span>
-                            </div>
-                            ${notificationList.map(notif => `
-                                <div class="notification">
-                                    <div class="notification-id">#${notif.id}</div>
-                                    <div class="notification-time">${notif.timestamp.toLocaleTimeString('es-ES')}</div>
-                                    <div style="margin-right: 80px;">${notif.texto}</div>
+        <div class="portal-header">
+            <div class="header-content">
+                <img src="https://www.geovictoria.com/hubfs/social-suggested-images/info.geovictoria.comhubfscropped-Logo-WEB-5-1.png" width="112px"/>
+                <div class="divider"></div>
+                <div class="color-lightblue2">Control de Asistencia</div>
+                <div class="divider"></div>
+                <input class="gv-input" type="text" placeholder="Buscar..."/>
+            </div>
+            
+            <div class="header-content">
+                <div class="info-buttons">
+                    <i class="fa-light fa-grid-round color-lightblue2"></i>
+                </div>
+                
+                <div class="info-buttons company">
+                    <div>Empresa</div>
+                    <img src="https://cdn.countryflags.com/thumbs/chile/flag-round-250.png" height="24px"/>
+                </div>
+
+                <div class="info-buttons user">
+                    <i class="fa-solid fa-circle-user color-lightblue2"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="portal-body">
+            <div class="side-menu">
+                <i class="fa-light fa-star"></i>
+                <i class="fa-light fa-file-lines"></i>
+                <i class="fa-light fa-user"></i>
+                <i class="fa-light fa-users"></i>
+                <i class="fa-light fa-calendar-lines-pen"></i>
+                <i class="fa-light fa-gear-complex"></i>
+            </div>
+            
+            <div class="container-fluid">
+                <!-- Breadcrumb Navigation -->
+                <div class="breadcrumb">
+                    <span class="breadcrumb-item">Sistema</span>
+                    <i class="fa-light fa-chevron-right"></i>
+                    <span class="breadcrumb-item current">Notificaciones</span>
+                </div>
+
+                <div class="notification-container">
+                    <div class="page-title">
+                        <i class="fa-light fa-bell color-lightblue2"></i>
+                        Notificaciones de VictoriaFlow
+                    </div>
+
+                    ${Object.keys(groupedNotifications).length === 0 
+                        ? `<div class="notification-card">
+                             <div class="empty-state">
+                               <i class="fa-light fa-inbox"></i>
+                               <div>No hay notificaciones disponibles</div>
+                             </div>
+                           </div>`
+                        : Object.entries(groupedNotifications)
+                            .sort(([a], [b]) => b.localeCompare(a))
+                            .map(([fecha, notificationList]) => `
+                                <div class="notification-card">
+                                    <div class="notification-header">
+                                        <div class="notification-date">
+                                            <i class="fa-light fa-calendar-day"></i> ${fecha}
+                                        </div>
+                                        <div class="notification-count">${notificationList.length}</div>
+                                    </div>
+                                    ${notificationList.map(notif => `
+                                        <div class="notification-item">
+                                            <div class="notification-meta">
+                                                <div class="notification-id">#${notif.id}</div>
+                                                <div class="notification-time">
+                                                    <i class="fa-light fa-clock"></i> ${notif.timestamp.toLocaleTimeString('es-ES')}
+                                                </div>
+                                            </div>
+                                            <div class="notification-text">${notif.texto}</div>
+                                        </div>
+                                    `).join('')}
                                 </div>
-                            `).join('')}
-                        </div>
-                    `).join('')
-            }
+                            `).join('')
+                    }
+                </div>
+            </div>
         </div>
     </body>
     </html>`;
