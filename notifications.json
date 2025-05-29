@@ -1,0 +1,17 @@
+{
+  "notifications": [
+    {
+      "id": 1,
+      "fecha": "2024-01-15",
+      "texto": "Prueba después de las mejoras",
+      "timestamp": "2025-05-29T10:44:23.087Z"
+    },
+    {
+      "id": 2,
+      "fecha": "2024-01-15",
+      "texto": "Prueba después de las mejoras",
+      "timestamp": "2025-05-29T10:44:51.033Z"
+    }
+  ],
+  "lastId": 2
+}
